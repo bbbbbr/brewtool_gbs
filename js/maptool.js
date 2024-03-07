@@ -495,6 +495,7 @@ var editor = (function(self) {
                     var attributeMap = generateAttributeMap(pixels);
                     var tileMap = generateTileMap(pixels, attributeMap);
                     var paletteTable = generatePaletteTable(attributeMap.palettes);
+                    var palettesText = generatePaletteText(attributeMap.palettes);
 
                     tilesetContainer.innerHTML = '';
                     tileMap.tileCanvas.style.display = 'block';
@@ -505,18 +506,21 @@ var editor = (function(self) {
                     p.appendChild(document.createTextNode(tileMap.tiles.length + ' tile(s) of ' + restrictions.tiles.width + ' x ' + restrictions.tiles.height + ' pixels'));
                     tilesetContainer.appendChild(p);
                     tilesetContainer.appendChild(tileMap.tileCanvas);
+
                     var p = document.createElement('p');
                     var a = document.createElement('a');
                     a.onclick = self.saveCHR;
                     a.appendChild(document.createTextNode('Save raw GB tileset (.chr)...'));
                     p.appendChild(a);
                     tilesetContainer.appendChild(p);
+
                     var p = document.createElement('p');
                     var a = document.createElement('a');
                     a.onclick = self.saveTilePNG;
                     a.appendChild(document.createTextNode('Save tile set (.tiles.png)...'));
                     p.appendChild(a);
                     tilesetContainer.appendChild(p);
+
                     var p = document.createElement('p');
                     var a = document.createElement('a');
                     a.onclick = self.saveCombinedPNG;
@@ -538,6 +542,20 @@ var editor = (function(self) {
                     a.appendChild(document.createTextNode('Save raw 15-bit palette (.pal)...'));
                     p.appendChild(a);
                     paletteContainer.appendChild(p);
+
+                    // Create text area for Palette in hex format
+                    var p = document.createElement('p');
+                    p.appendChild(document.createTextNode('GBStudio json formatted palettes'));
+                    paletteContainer.appendChild(p);
+
+                    var palette_textarea = document.createElement("textarea");
+                    palette_textarea.value = palettesText;
+                    palette_textarea.rows = "20";
+                    palette_textarea.cols = "16";
+                    palette_textarea.maxLength = "5000";   
+                    paletteContainer.appendChild(palette_textarea);
+
+
                     var p = document.createElement('p');
                     var a = document.createElement('a');
                     a.onclick = self.saveAttrPNG;
@@ -635,6 +653,35 @@ var editor = (function(self) {
             table.appendChild(tr);
         }
         return table;
+    }    
+
+    function componentToHex(c) {
+      var hex = c.toString(16);
+      return hex.length == 1 ? "0" + hex : hex;
+    }
+
+    // Generate a GBStudio .gbs inernal json friendly text string from the palettes
+    var generatePaletteText = function(palettes) {
+        var palStr = "";        
+        for(var pal_idx= 0; pal_idx < palettes.length; pal_idx++) {
+            var palette = palettes[pal_idx].colors.values;
+
+            for(var color_idx = 0; color_idx < palette.length; color_idx++) {
+                // Starting quote char + RGB hex triplet
+                palStr += '"'
+                for(var rgb_idx = 0; rgb_idx < palette[color_idx].length; rgb_idx++) {
+                    // exclude alpha byte
+                        if (rgb_idx < 3)
+                            palStr += componentToHex(palette[color_idx][rgb_idx]);                
+                }
+                // Closing quote char and comma if needed, otherwise line break at new sub-palette
+                if (color_idx === (palette.length - 1))
+                    palStr += '"\n\n';
+                else
+                    palStr += '",\n';
+            }
+        }
+        return palStr;
     }    
 
     var calculateColorSet = function(pixels, x, y) {
